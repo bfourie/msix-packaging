@@ -3,6 +3,9 @@ using System.Windows.Forms;
 using System.Deployment.Application;
 using System.Collections.Specialized;
 using System.Web;
+using System.IO;
+using System.Xml.Linq;
+using System.Linq;
 
 namespace ClickOnceWrapper
 {
@@ -47,7 +50,19 @@ namespace ClickOnceWrapper
                 }
                 else
                 {
-                    string arguments = "-addpackage " + decode;
+                    string url = string.Empty;
+                    if (Path.GetExtension(decode) == ".appinstaller")
+                    {
+                        var appinstallerXml = XDocument.Load(decode);
+                        var mainPackage = appinstallerXml.Root.Elements().Where(x => x.Name.LocalName == "MainPackage")
+                            .FirstOrDefault();
+                        url = mainPackage.Attribute("Uri").Value;
+                    }
+                    else
+                    {
+                        url = decode;
+                    }
+                    string arguments = "-addpackage " + url;
                     // It is not possible to launch a ClickOnce app as administrator directly,
                     // so instead we launch the app as administrator in a new process.
                     processInfo = new System.Diagnostics.ProcessStartInfo("msixmgr.exe", arguments);
@@ -66,7 +81,7 @@ namespace ClickOnceWrapper
                 {
                     MessageBox.Show("Unable to start this program");
                 }
-                
+
                 // Shut down the current process
                 Application.Exit();
             }
